@@ -2,12 +2,16 @@ package portfolio;
 
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.StreamSupport;
 
 /**
  * Manages a portfolio of assets, categorized by their specific class.
+ * This implementation is thread-safe and optimized for high-concurrency additions
+ * using a segmented data structure.
  */
 public class PortfolioManagement {
-    private final Map<Class<? extends Asset>, List<Asset>> assets = new HashMap<>();
+    private final Map<Class<? extends Asset>, SegmentedList<Asset>> assets = new ConcurrentHashMap<>();
 
     /**
      * Adds an asset to the portfolio.
@@ -15,7 +19,7 @@ public class PortfolioManagement {
      */
     public void addAsset(Asset asset) {
         if (asset == null) return;
-        assets.computeIfAbsent(asset.getClass(), k -> new ArrayList<>()).add(asset);
+        assets.computeIfAbsent(asset.getClass(), k -> new SegmentedList<>()).add(asset);
     }
 
     /**
@@ -25,13 +29,9 @@ public class PortfolioManagement {
      */
     public boolean removeAsset(Asset asset) {
         if (asset == null) return false;
-        List<Asset> assetList = assets.get(asset.getClass());
+        SegmentedList<Asset> assetList = assets.get(asset.getClass());
         if (assetList != null) {
-            boolean removed = assetList.remove(asset);
-            if (assetList.isEmpty()) {
-                assets.remove(asset.getClass());
-            }
-            return removed;
+            return assetList.remove(asset);
         }
         return false;
     }
@@ -43,7 +43,7 @@ public class PortfolioManagement {
      */
     public boolean containsAsset(Asset asset) {
         if (asset == null) return false;
-        List<Asset> assetList = assets.get(asset.getClass());
+        SegmentedList<Asset> assetList = assets.get(asset.getClass());
         return assetList != null && assetList.contains(asset);
     }
 
@@ -53,16 +53,17 @@ public class PortfolioManagement {
      */
     public BigDecimal getTotalValue() {
         return assets.values().stream()
-                .flatMap(Collection::stream)
+                .flatMap(s -> StreamSupport.stream(s.spliterator(), false))
                 .map(Asset::getValue)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     /**
      * Returns an unmodifiable view of the assets map.
+     * Each value is a SegmentedList acting as an Iterable collection of assets.
      * @return The assets map.
      */
-    public Map<Class<? extends Asset>, List<Asset>> getAssets() {
+    public Map<Class<? extends Asset>, ? extends Iterable<Asset>> getAssets() {
         return Collections.unmodifiableMap(assets);
     }
 }
