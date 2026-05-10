@@ -32,10 +32,10 @@ test {
 }
 
 jmh {
-    warmupIterations = 1
-    iterations = 2
+    warmupIterations = 2
+    iterations = 3
     fork = 1
-    threads = 10 // Starting with 10 threads
+    threads = project.hasProperty('jmhThreads') ? project.getProperty('jmhThreads').toInteger() : 1
     benchmarkMode = ['avgt']
     resultFormat = 'TEXT'
     timeUnit = 'ms'
