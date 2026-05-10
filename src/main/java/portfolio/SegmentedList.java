@@ -29,6 +29,7 @@ public class SegmentedList<T> implements Iterable<T> {
 
     public SegmentedList() {
         this(Runtime.getRuntime().availableProcessors());
+        //System.out.println("%d".formatted(Runtime.getRuntime().availableProcessors()));
     }
 
     private static class Segment<T> {

@@ -25,22 +25,41 @@ class PortfolioManagementTest {
 
     @ParameterizedTest
     @CsvSource({
+            "80, 1000",
+            "80, 10000",
+            "80, 100000",
+            "80, 1000000",
+            "80, 10000000",
+            "40, 1000",
+            "40, 10000",
+            "40, 100000",
+            "40, 1000000",
+            "40, 10000000",
+            "20, 1000",
+            "20, 10000",
+            "20, 100000",
+            "20, 1000000",
+            "20, 10000000",
             "16, 1000",
             "16, 10000",
             "16, 100000",
-            //"16, 1000000",
+            "16, 1000000",
+            "16, 10000000",
             "8, 1000",
             "8, 10000",
             "8, 100000",
             "8, 1000000",
+            "8, 10000000",
             "4, 1000",
             "4, 10000",
             "4, 100000",
             "4, 1000000",
+            "4, 10000000",
             "2, 1000",
             "2, 10000",
             "2, 100000",
             "2, 1000000",
+            "2, 10000000",
 
     })
     void testConcurrentAdditions(int numThreads, int additionsPerThread) throws InterruptedException {
@@ -60,13 +79,14 @@ class PortfolioManagementTest {
 
         // Total should be 10 threads * 1000 additions * 10.00 = 100,000.00
         BigDecimal expectedTotal = new BigDecimal("10.00").multiply(new BigDecimal(numThreads)).multiply(new BigDecimal(additionsPerThread));
-        assertEquals(0, expectedTotal.compareTo(portfolio.getTotalValue()), 
-            "Concurrent total value should be %s, but was ".formatted(expectedTotal) + portfolio.getTotalValue());
-        
-        long count = StreamSupport.stream(portfolio.getAssets().get(Stock.class).spliterator(), false).count();
-        assertEquals((additionsPerThread*numThreads), count, "Should have %d stocks in total".formatted((additionsPerThread*numThreads)));
+        assertEquals(0, expectedTotal.compareTo(portfolio.getTotalValue()),
+                "Concurrent total value should be %s, but was ".formatted(expectedTotal) + portfolio.getTotalValue());
+
+        long count = StreamSupport.stream(portfolio.getAssets().get(Stock.class).spliterator(), true).count();
+        assertEquals((additionsPerThread * numThreads), count, "Should have %d stocks in total".formatted((additionsPerThread * numThreads)));
         long end = System.currentTimeMillis();
-        System.out.println("threads: %s, total additions: %s, time taken:%.2f".formatted(numThreads, additionsPerThread, ((double)(end-start))/1000.0));
+        System.out.println("available processors: %2d, threads: %,2d, total additions: %,12d, totalAssetNum: %,12d time taken:%,5.2f"
+                .formatted(portfolio.getAvailableProcessors(), numThreads, additionsPerThread, portfolio.getAssetsSize(), ((double) (end - start)) / 1000.0));
     }
 
     @Test
@@ -81,7 +101,7 @@ class PortfolioManagementTest {
         Asset bond = new Bond("US Treasury", new BigDecimal("1000.00"));
         portfolio.addAsset(bond);
         assertTrue(portfolio.containsAsset(bond));
-        
+
         boolean removed = portfolio.removeAsset(bond);
         assertTrue(removed, "Asset should be successfully removed");
         assertFalse(portfolio.containsAsset(bond), "Portfolio should no longer contain the removed asset");
@@ -92,32 +112,32 @@ class PortfolioManagementTest {
         portfolio.addAsset(new Stock("Apple", new BigDecimal("150.00")));
         portfolio.addAsset(new Bond("US Treasury", new BigDecimal("1000.00")));
         portfolio.addAsset(new RestrictedStock("Startup", new BigDecimal("500.00")));
-        
+
         // Expected total: 150 + 1000 + 500 = 1650
-        assertEquals(0, new BigDecimal("1650.00").compareTo(portfolio.getTotalValue()), 
-            "Total value should be 1650.00");
+        assertEquals(0, new BigDecimal("1650.00").compareTo(portfolio.getTotalValue()),
+                "Total value should be 1650.00");
     }
 
     @Test
     void testTotalValueEmpty() {
         assertEquals(BigDecimal.ZERO, portfolio.getTotalValue(), "Empty portfolio should have zero value");
     }
-    
+
     @Test
     void testCategorization() {
         Asset stock1 = new Stock("Apple", new BigDecimal("150.00"));
         Asset stock2 = new Stock("Google", new BigDecimal("2800.00"));
         Asset bond = new Bond("Corporate", new BigDecimal("500.00"));
-        
+
         portfolio.addAsset(stock1);
         portfolio.addAsset(stock2);
         portfolio.addAsset(bond);
-        
+
         assertEquals(2, portfolio.getAssets().size(), "Should have 2 categories (Stock and Bond)");
-        
+
         long stockCount = StreamSupport.stream(portfolio.getAssets().get(Stock.class).spliterator(), false).count();
         assertEquals(2, stockCount, "Should have 2 stocks");
-        
+
         long bondCount = StreamSupport.stream(portfolio.getAssets().get(Bond.class).spliterator(), false).count();
         assertEquals(1, bondCount, "Should have 1 bond");
     }

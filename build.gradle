@@ -23,5 +23,5 @@ java {
 
 test {
     useJUnitPlatform()
-    jvmArgs '-Xms24g', '-Xmx24g'
+    jvmArgs '-Xms384g', '-Xmx384g', '-XX:+UseAllWindowsProcessorGroups'
 }
