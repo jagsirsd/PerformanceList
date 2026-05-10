@@ -117,15 +117,32 @@ public class SegmentedList<T> implements Iterable<T> {
         return stream().spliterator();
     }
 
+    /**
+     * Returns a sequential stream of all items in the segments.
+     */
     public Stream<T> stream() {
-        // For a consistent view, we'd need to lock all segments.
-        // For "best effort" reporting, we can stream them sequentially or in parallel.
         return Arrays.stream(segments)
                 .flatMap(s -> {
                     s.lock.lock();
                     try {
-                        // Create a copy for the stream to avoid ConcurrentModificationException
-                        // if additions happen while streaming.
+                        return new ArrayList<>(s.list).stream();
+                    } finally {
+                        s.lock.unlock();
+                    }
+                });
+    }
+
+    /**
+     * Returns a parallel stream of all items in the segments, 
+     * processing segments in parallel.
+     */
+    public Stream<T> parallelStream() {
+        return Arrays.stream(segments).parallel()
+                .flatMap(s -> {
+                    s.lock.lock();
+                    try {
+                        // Snapshot each segment to allow parallel processing without 
+                        // holding locks for the entire duration of the stream operation.
                         return new ArrayList<>(s.list).stream();
                     } finally {
                         s.lock.unlock();

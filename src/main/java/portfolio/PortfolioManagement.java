@@ -62,12 +62,13 @@ public class PortfolioManagement implements PortfolioManagementI {
 
     /**
      * Calculates the total value of all assets in the portfolio.
+     * Uses parallel streams to process all asset categories and segments concurrently.
      * @return The sum of the values of all assets.
      */
     @Override
     public BigDecimal getTotalValue() {
-        return assets.values().stream()
-                .flatMap(s -> StreamSupport.stream(s.spliterator(), false))
+        return assets.values().parallelStream()
+                .flatMap(SegmentedList::parallelStream)
                 .map(Asset::getValue)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
